@@ -1,4 +1,4 @@
-# 동시성 제어를 위한 ReentrantLock 활용
+## 동시성 제어를 위한 ReentrantLock 활용
 
 `new ReentrantLock(true)`를 활용하여 동시성 제어를 구현했습니다.  
 ReentrantLock은 두 가지 방식으로 사용할 수 있다는 사실을 알게 되었고,  
@@ -22,11 +22,15 @@ ReentrantLock은 두 가지 방식으로 사용할 수 있다는 사실을 알�
 
 ```java
 lock.lock();
-try {
-    // 기능 구현
-} finally {
+try{
+    long newPoint = selectPoint(id).point() + amount;
+    if(newPoint > PointController.MAX_LIMIT) throw new IllegalArgumentException("최대 잔고를 초과");
+
+    pointHistoryTable.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
+    return userPointTable.insertOrUpdate(id, newPoint);
+}finally {
     lock.unlock();
-} 
+}
 ```
 `try-finally` 구문을 사용해, 락을 해제하는 방법을 적용했습니다.  
 스레드가 요청을 끝내면 **다른 스레드가** 락을 획득해서 **활용할 수 있도록** 설정했습니다.
