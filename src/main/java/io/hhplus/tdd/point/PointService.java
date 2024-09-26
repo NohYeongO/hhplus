@@ -35,7 +35,6 @@ public class PointService {
 
     public UserPoint pointCharge(long id, long amount) {
         long newPoint = selectPoint(id).point() + amount;
-
         if(newPoint > PointController.MAX_LIMIT) throw new IllegalArgumentException("최대 잔고를 초과");
 
         pointHistoryTable.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
