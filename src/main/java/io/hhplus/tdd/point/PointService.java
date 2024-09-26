@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class PointService {
@@ -19,6 +21,8 @@ public class PointService {
         this.pointHistoryTable = pointHistoryTable;
     }
 
+    private final Lock lock = new ReentrantLock(true);
+
     public UserPoint selectPoint(long id) {
         return userPointTable.selectById(id);
     }
@@ -30,19 +34,30 @@ public class PointService {
     }
 
     public UserPoint pointCharge(long id, long amount) {
-        long newPoint = selectPoint(id).point() + amount;
-        if(newPoint > PointController.MAX_LIMIT) throw new IllegalArgumentException("최대 잔고를 초과");
+        lock.lock();
+        try{
+            long newPoint = selectPoint(id).point() + amount;
+            if(newPoint > PointController.MAX_LIMIT) throw new IllegalArgumentException("최대 잔고를 초과");
 
-        pointHistoryTable.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
-        return userPointTable.insertOrUpdate(id, newPoint);
+            pointHistoryTable.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
+            return userPointTable.insertOrUpdate(id, newPoint);
+        }finally {
+            lock.unlock();
+        }
     }
 
     public UserPoint pointUse(long id, long amount) {
-        long newPoint = selectPoint(id).point() - amount;
-        if(newPoint < 0) throw new IllegalArgumentException("잔고 부족");
+        lock.lock();
+        try{
+            long newPoint = selectPoint(id).point() - amount;
+            if(newPoint < 0) throw new IllegalArgumentException("잔고 부족");
 
-        pointHistoryTable.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
-        return userPointTable.insertOrUpdate(id, newPoint);
+            pointHistoryTable.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
+            return userPointTable.insertOrUpdate(id, newPoint);
+        }finally {
+            lock.unlock();
+        }
     }
 
 }
+
